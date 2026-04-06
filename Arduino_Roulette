@@ -1,0 +1,112 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int startPin = 2;
+const int endPin = 11;
+const int buttonPin = 12;
+const int buzzerPin = 13;
+
+int currentPin = 0;
+
+
+float grades[] = {1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 2.75, 3.00, 5.00, 1.00};
+
+void setup() {
+  Wire.begin();
+
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(buzzerPin, OUTPUT);
+
+  for (int i = startPin; i <= endPin; i++) pinMode(i, OUTPUT);
+
+  randomSeed(analogRead(0));
+
+  lcd.begin(16, 2);
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("Press Switch to");
+  lcd.setCursor(0,1);
+  lcd.print("Start Roulette");
+}
+
+void loop() {
+  if (digitalRead(buttonPin) == LOW) {
+    currentPin = startPin;
+    runRoulette();
+    delay(300); // debounce
+  }
+}
+
+void beep() {
+  tone(buzzerPin, 3000);
+  delay(20);
+  noTone(buzzerPin);
+}
+
+void runRoulette() {
+  int delayTime = 50;
+  int stopAt = random(startPin, endPin + 1);
+
+  // Spin effect
+  for (int i = 0; i < 30; i++) {
+    digitalWrite(currentPin, LOW);
+
+    currentPin++;
+    if (currentPin > endPin) currentPin = startPin;
+
+    digitalWrite(currentPin, HIGH);
+    beep();
+
+    lcd.setCursor(0,0);
+    lcd.print("Spinning...     ");
+    lcd.setCursor(0,1);
+    lcd.print("Grades: ");
+
+    int ledIndex = currentPin - startPin; // 0-based index
+    lcd.print(grades[ledIndex], 2);
+    lcd.print("   ");
+
+    delay(delayTime);
+    delayTime += 10;
+  }
+
+  // Slow down to stop at random pin
+  while (currentPin != stopAt) {
+    digitalWrite(currentPin, LOW);
+
+    currentPin++;
+    if (currentPin > endPin) currentPin = startPin;
+
+    digitalWrite(currentPin, HIGH);
+    beep();
+
+    lcd.setCursor(0,0);
+    lcd.print("Stopping...     ");
+    lcd.setCursor(0,1);
+    lcd.print("Grade: ");
+
+    int ledIndex = currentPin - startPin; // 0-based index
+    lcd.print(grades[ledIndex], 2);
+    lcd.print("   ");
+
+    delay(100);
+  }
+
+  lcd.setCursor(0,0);
+  lcd.print("Roulette Stop!  ");
+  lcd.setCursor(0,1);
+  lcd.print("Grades: ");
+
+  int ledIndex = currentPin - startPin; // 0-based index
+  lcd.print(grades[ledIndex], 2);
+  lcd.print("   ");
+
+  delay(3000);
+
+  lcd.setCursor(0,0);
+  lcd.print("Press Switch to");
+  lcd.setCursor(0,1);
+  lcd.print("Start Roulette");
+}
